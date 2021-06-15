@@ -1,0 +1,4 @@
+---
+# vars file for httpdserver
+http_port: 80
+domain: example.com

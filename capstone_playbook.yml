@@ -1,0 +1,61 @@
+---
+  - name: Provision ec2 instances
+    hosts: localhost
+    gather_facts: no
+    become: true
+    become_method: sudo
+    become_user: root
+    vars_files:
+          - /home/ec2-user/capstone_project/step1_provision_ec2/vars/mycred.yml
+    tasks:
+      - name: Invoke role to provision ec2 instances
+        include_role:
+          name: provision_ec2_instances
+  
+  - hosts: webserver
+    gather_facts: yes
+    become: true
+    become_method: sudo
+    become_user: root
+    tasks:
+      - name: installing python
+        package:
+          name: python36
+          state: present
+      - command: curl http://ipv4.icanhazip.com
+        register: x
+      - debug:
+          var:  x.stdout          
+      - name: Pass variables to role
+        include_role:
+          name: httpdserver
+        vars:
+          my_ip: x.stdout
+
+  - name: provision k8 master
+    hosts: ec2_slave
+    gather_facts: no
+    become: true
+    become_method: sudo
+    become_user: root
+    tasks:
+      - name: Invoke k8s master role
+        include_role:
+          name: k8_slave
+   
+  - hosts: ec2_slave
+    gather_facts: no
+    become: true
+    become_method: sudo
+    become_user: root
+    tasks:
+      - name: installing python
+        package:
+          name: python36
+          state: present
+      - name: Running K8s Slave Role
+        include_role:
+          name: k8_slave
+
+
+

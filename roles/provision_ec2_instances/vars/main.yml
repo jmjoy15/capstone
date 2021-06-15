@@ -1,0 +1,8 @@
+---
+  port: 81
+  region: us-east-1
+  subnet: subnet-24aa197b
+  sg: websg
+  type: t2.medium
+  number: 3
+  myport: 81

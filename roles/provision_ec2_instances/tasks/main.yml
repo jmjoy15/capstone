@@ -1,0 +1,85 @@
+---
+  #- name: Provision
+   # include_vars:
+    #      - /home/ec2-user/capstone_project/step1_provision_ec2/vars/mycred.yml
+
+    
+      - name: installing python
+        package:
+            name: python36
+            state: present
+      - name: install pip3
+        package: name=python3-pip state=present
+      - name: installing boto3
+        pip:
+              name: boto3
+              state: present
+      - name: create security group
+        ec2_group:
+                name: "{{ sg }}"
+                description: The webservers security group
+                region: "{{ region }}"
+                aws_access_key: "{{ access_key }}"
+                aws_secret_key: "{{ secret_key }}"
+                rules:
+                        - proto: tcp
+                          from_port: 22
+                          to_port: 22
+                          cidr_ip: 0.0.0.0/0
+                        - proto: tcp
+                          from_port: "{{ myport }}"
+                          to_port: "{{ myport }}"
+                          cidr_ip: 0.0.0.0/0
+                        - proto: tcp
+                          from_port: 6443
+                          to_port: 6443
+                          cidr_ip: 0.0.0.0/0
+
+                rules_egress:
+                        - proto: all
+                          cidr_ip: 0.0.0.0/0
+      - name: installing boto
+        pip:
+            name: boto
+            state: present
+      - name: launching ec2 instance
+        ec2:
+             key_name: ansible
+             instance_type: "{{ type }}"
+             image: ami-096fda3c22c1c990a
+             wait: true
+             group: "{{ sg }}"
+             count: "{{ number }}"
+             vpc_subnet_id: "{{ subnet }}"
+             assign_public_ip: yes
+             region: "{{ region }}"
+             state: present
+             aws_access_key: "{{ access_key }}"
+             aws_secret_key: "{{ secret_key }}"
+             instance_tags:
+                     Name: webserver
+        register: ec2
+      - name: Add new instance to host group
+        add_host:
+               hostname: "{{ item.public_ip }}"
+               groupname: webserver
+        loop: "{{ ec2.instances }}"
+      - name: Add 1st instance to host group ec2_master
+        add_host:
+            hostname: "{{ ec2.instances[0].public_ip }}"
+            groupname: ec2_master
+      - name: Add 2nd instance to host group ec2_slave
+        add_host:
+            hostname: "{{ ec2.instances[1].public_ip }}"
+            groupname: ec2_slave
+      - name: Add 3rd instance to host group ec2_slave
+        add_host:
+            hostname: "{{ ec2.instances[2].public_ip }}"
+            groupname: ec2_slave        
+      - name: Wait for SSH to come up
+        wait_for:
+               host: "{{ item.public_dns_name }}"
+               port: 22
+               state: started
+        loop: "{{ ec2.instances }}"
+
