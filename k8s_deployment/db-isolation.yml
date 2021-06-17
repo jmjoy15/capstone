@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-server-to-access
+spec:
+  podSelector:
+    matchLabels:
+      app: mongo-pod
+  policyTypes:
+  - Ingress
+  - Egress
